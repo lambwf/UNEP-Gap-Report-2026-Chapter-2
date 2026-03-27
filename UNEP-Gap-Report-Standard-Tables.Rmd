@@ -1,0 +1,723 @@
+---
+title: "UNEP-Gap-Report-2024-Standard-Tables"
+author: "William F. Lamb"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE)
+rm(list = ls())
+
+library(tidyverse)
+library(openxlsx)
+library(countrycode)
+library(WDI)
+library(zoo)
+
+load("data/data_edgar.RData")
+load("data/data_gcb_luc.RData")
+load("data/data_inv_luc.RData")
+load("data/data_gcb_co2_ffi.RData")
+
+source("https://raw.githubusercontent.com/lambwf/Codebase/main/growth_rate.R")
+
+## GCB projection (Friedlingstein et al. 2024 table 7)
+
+gcb_luc_projection <- 1.2*3.664
+
+
+
+cc_EU <- read.csv("https://raw.githubusercontent.com/openclimatedata/countrygroups/main/data/european-union.csv") %>% 
+  select(iso=Code) %>% 
+  mutate(EU="1")
+
+```
+
+## Data files
+### Total emissions by gas
+
+```{r table_totals}
+
+
+## Aggregate emissions data
+
+data_total <- data_edgar %>% 
+  group_by(year,gas) %>% 
+  summarise(value=sum(value,na.rm=T)/1e9)
+
+data_total_luc <- data_gcb_luc %>% 
+  filter(country=="Global") %>% 
+  mutate(value=value/1e9)
+
+
+# Add the GCB projection and join
+
+data_total_luc <- data_total_luc %>% 
+  add_row(year=2024,value=gcb_luc_projection)
+
+data_total_luc <- data_total_luc %>% 
+  mutate(gas="CO2 LULUCF (Bookkeeping)") %>% 
+  select(-iso,-country)
+
+data_total <- rbind(data_total,data_total_luc) %>% 
+  filter(year>=1990)
+
+
+## Add the inventory LULUCF and join
+
+data_total_inv_luc <- read.csv("sources/not public/timeseries_JRC.csv") %>% 
+  filter(ISO3=="WRD",Category=="LULUCF",Version=="V3.0 (NGHGI 2025)") %>% 
+  rename(year=Year,value=CFluxes_yr) %>% 
+  group_by(year) %>% 
+  summarise(value=sum(value,na.rm=T)/1000) %>% 
+  mutate(gas="CO2 LULUCF (Inventory)")
+  
+data_total <- rbind(data_total,data_total_inv_luc)
+
+
+######### format table 1
+
+# Select time frames for reporting (2010s, 2021, 2022, 2023)
+
+data_table <- data_total %>% 
+  mutate(cut=ifelse(year>=2010 & year <=2019,"2010-2019",NA)) %>% 
+  mutate(cut=ifelse(year==2022,"2022",cut)) %>% 
+  mutate(cut=ifelse(year==2023,"2023",cut)) %>% 
+  mutate(cut=ifelse(year==2024,"2024",cut))
+
+
+# Calculate total emissions by gas in each reporting year
+
+data_table <- data_table %>% 
+  filter(!is.na(cut)) %>% 
+  group_by(gas,cut) %>% 
+  summarise(value=mean(value))
+
+
+# Calculate uncertainties for individual gases following the IPCC AR6 WG3 convention
+
+uncertainties = data.frame(gas=c("CO2 Fossil","CO2 LULUCF (Bookkeeping)","CO2 LULUCF (Inventory)","CH4","N2O","F-gases"),uncertainty=c(0.08,0.7,0.7,0.3,0.6,0.3))
+
+data_table <- left_join(data_table,uncertainties,by="gas")
+data_table <- data_table %>% 
+  mutate(uncertainty_abs=value*uncertainty) %>% 
+  mutate(value=ifelse(gas=="CO2 Fossil",signif(value,3),signif(value,2))) %>% 
+  mutate(uncertainty_abs=signif(uncertainty_abs,2))
+
+data_table <- data_table %>% 
+  mutate(value=paste0(value,"±",uncertainty_abs))
+
+
+# Calculate total GHG emissions in the selected time frames, excluding inventory LULUCF
+
+
+data_table_ghgs <- data_total %>% 
+  mutate(cut=ifelse(year>=2010 & year <=2019,"2010-2019",NA)) %>% 
+  mutate(cut=ifelse(year==2022,"2022",cut)) %>% 
+  mutate(cut=ifelse(year==2023,"2023",cut)) %>% 
+  mutate(cut=ifelse(year==2024,"2024",cut)) %>% 
+  filter(!is.na(cut)) %>% 
+  group_by(gas,cut) %>% 
+  summarise(value=mean(value))
+
+
+data_table_ghgs <- left_join(data_table_ghgs,uncertainties,by="gas") %>% 
+  filter(gas!="CO2 LULUCF (Inventory)") %>% 
+  group_by(cut,gas,uncertainty) %>% 
+  summarise(value=mean(value,na.rm=TRUE))
+
+# Calculate uncertainty ranges for total GHG emissions, following IPCC AR6 WG3 convention
+
+data_table_ghgs <- data_table_ghgs %>% 
+  mutate(uncertainty_abs=value*uncertainty) %>% 
+  mutate(uncertainty_abs=uncertainty_abs^2) %>% 
+  group_by(cut) %>% 
+  summarise(value=sum(value,na.rm=TRUE),
+            uncertainty_abs=sqrt(sum(uncertainty_abs,na.rm=TRUE)))
+
+data_table_ghgs <- data_table_ghgs %>% 
+  mutate(gas="GHG") %>% 
+  mutate(value=signif(value,3)) %>% 
+  mutate(uncertainty_abs=signif(uncertainty_abs,2)) %>% 
+  mutate(value=paste0(value,"±",uncertainty_abs))
+
+
+# Join data by gas and GHG, tidy up variables
+
+data_table <- rbind(data_table,data_table_ghgs)
+data_table <- data_table %>% 
+  select(-uncertainty,-uncertainty_abs)
+
+
+# Arrange factor levels
+
+data_table$gas <- as.factor(data_table$gas)
+data_table$gas <- fct_relevel(data_table$gas,"GHG","CO2 Fossil","CO2 LULUCF (Bookkeeping)","CO2 LULUCF (Inventory)","CH4","N2O","F-gases")
+data_table <- spread(data_table,cut,value)
+
+
+########### table of totals
+
+data_total <- data_total %>% 
+  rbind(.,data_total %>% 
+              filter(gas!="CO2 LULUCF (Inventory)") %>% 
+              group_by(year) %>%
+              summarise(value=sum(value,na.rm=TRUE)) %>% 
+              mutate(gas="GHG"))
+
+
+# Arrange factor levels
+
+data_total$gas <- as.factor(data_total$gas)
+data_total$gas <- fct_relevel(data_total$gas,"GHG","CO2 Fossil","CO2 LULUCF (Bookkeeping)","CH4","N2O","F-gases","CO2 LULUCF (Inventory)")
+
+
+# Spread data and calculate relative and absolute changes in the latest year
+
+data_total_change <- data_total %>% 
+  filter(year %in% c(2023,2024)) %>% 
+  arrange(gas,year) %>% 
+  group_by(gas) %>% 
+  summarise(change_2023_2024_abs=last(value)-first(value),
+            change_2023_2024_rel=growth_rate(year,value)$rate) %>% 
+  mutate(change_2023_2024_rel=paste0(round(change_2023_2024_rel*100,1),"%"))
+
+data_total <- data_total %>% 
+  spread(year,value) %>% 
+  left_join(.,data_total_change)
+
+
+# Add a blank row to separate values not in the total (inventory LULUCF and CO2 excl. carbonation)
+
+data_total <- rbind(data_total %>%
+                             ungroup() %>%
+                             filter(!gas %in% c("CO2 LULUCF (Inventory)")) %>%
+                             add_row(),
+                    data_total %>% filter(gas %in% c("CO2 LULUCF (Inventory)")))
+
+data_total <- data_total %>% 
+  mutate(change_2023_2024_abs=ifelse(gas=="CO2 LULUCF (Inventory)",NA,change_2023_2024_abs)) %>% 
+  mutate(change_2023_2024_rel=ifelse(gas=="CO2 LULUCF (Inventory)",NA,change_2023_2024_rel))
+
+
+######################## Save data to excel file
+
+wb <- createWorkbook()
+options("openxlsx.numFmt" = "0.00")
+addWorksheet(wb,"table_1")
+writeData(wb, sheet = "table_1", data_table, colNames = T, rowNames = F)
+
+
+
+
+pct = createStyle(numFmt="0.0%")
+
+addWorksheet(wb,"total_by_gas")
+writeData(wb, sheet = "total_by_gas", data_total, colNames = T, rowNames = F)
+
+addStyle(wb, "total_by_gas",style=pct,
+         cols=length(data_total),
+         rows=1:length(data_total$gas)+1,
+         gridExpand=TRUE)
+
+
+
+## Table of total emissions by sector (for data file)
+
+
+# Calculate total emissions by sector
+
+data_sectors <- data_edgar %>%
+  filter(year>=1990) %>%
+  group_by(sector_lv1,sector_lv2,sector_lv3,year) %>%
+  summarise(value=sum(value,na.rm=TRUE)/1e9)
+
+
+# Spread and calculate relative and absolute emission changes in the latest year
+
+
+data_sectors_change <- data_sectors %>% 
+  filter(year %in% c(2023,2024)) %>% 
+  arrange(sector_lv1,sector_lv2,sector_lv3,year) %>% 
+  group_by(sector_lv1,sector_lv2,sector_lv3) %>% 
+  summarise(change_2023_2024_abs=last(value)-first(value),
+            change_2023_2024_rel=growth_rate(year,value)$rate) %>% 
+  mutate(change_2023_2024_rel=paste0(round(change_2023_2024_rel*100,1),"%"))
+
+data_sectors <- data_sectors %>% 
+  spread(year,value) %>% 
+  left_join(.,data_sectors_change)
+
+
+
+# Write to excel file
+
+addWorksheet(wb,"total_by_sector")
+writeData(wb, sheet = "total_by_sector", data_sectors, colNames = T, rowNames = F)
+
+addStyle(wb, "total_by_sector",style=pct,
+         cols=length(data_sectors),
+         rows=2:length(data_sectors$sector_lv1)+1,
+         gridExpand=TRUE)
+
+
+
+
+
+
+# Save excel file
+
+saveWorkbook(wb,paste0("results/UNEP-Gap-Report-2025-Chapter-2-Data-Global.xlsx"),overwrite=T)
+
+```
+
+## Technical Annex 
+### Comparison of estimates to previous EGRs
+
+``` {r comparison_egrs}
+
+
+## Aggregate emissions data
+
+data_comparison <- data_edgar %>% 
+  group_by(year,gas) %>% 
+  summarise(value=sum(value,na.rm=T)/1e9)
+
+data_comparison_luc <- data_gcb_luc %>% 
+  filter(country=="Global") %>% 
+  mutate(value=value/1e9)
+
+
+# Add the GCB projection and join
+
+data_comparison_luc <- data_comparison_luc %>% 
+  add_row(year=2024,value=gcb_luc_projection)
+
+data_comparison_luc <- data_comparison_luc %>% 
+  mutate(gas="CO2 LULUCF (Bookkeeping)") %>% 
+  select(-iso,-country)
+
+data_comparison <- rbind(data_comparison,data_comparison_luc)
+
+
+## Add the inventory LULUCF and join
+
+data_comparison_inv_luc <- read.csv("sources/not public/timeseries_JRC.csv") %>% 
+  filter(ISO3=="WRD",Category=="LULUCF",Version=="V3.0 (NGHGI 2025)") %>% 
+  rename(year=Year,value=CFluxes_yr) %>% 
+  group_by(year) %>% 
+  summarise(value=sum(value,na.rm=T)/1000) %>% 
+  mutate(gas="CO2 LULUCF (Inventory)")
+  
+data_comparison <- rbind(data_comparison,data_comparison_inv_luc)
+
+
+## table
+
+data_comparison <- data_comparison %>% 
+  filter(year==2019) %>% 
+  left_join(.,data.frame(gas=c("CO2 Fossil","CO2 LULUCF (Bookkeeping)","CO2 LULUCF (Inventory)","CH4","N2O","F-gases"),uncertainty=c(0.08,0.7,0.7,0.3,0.6,0.3)))
+
+
+data_comparison <- data_comparison %>% 
+  mutate(abs_uncertainty=value*uncertainty)
+
+data_comparison <- data_comparison %>%
+  bind_rows(.,data_comparison %>% 
+              filter(gas!="CO2 LULUCF (Inventory)") %>% 
+          mutate(abs_uncertainty=abs_uncertainty^2) %>% 
+          group_by(year) %>% 
+          summarise(gas="GHG",value=sum(value),
+                    abs_uncertainty=sqrt(sum(abs_uncertainty,na.rm=TRUE))))
+
+
+data_comparison <- data_comparison %>% 
+  mutate(estimate=paste0(signif(value,3)," ± ",round(abs_uncertainty,1)))
+
+
+
+```
+
+## Small numbers
+
+### Absolute change by gas
+
+``` {r abs_change}
+
+
+## Aggregate emissions data
+
+data_total <- data_edgar %>% 
+  group_by(year,gas) %>% 
+  summarise(value=sum(value,na.rm=T)/1e9)
+
+data_total_luc <- data_gcb_luc %>% 
+  filter(country=="Global") %>% 
+  mutate(value=value/1e9)
+
+
+# Add the GCB projection and join
+
+data_total_luc <- data_total_luc %>% 
+  add_row(year=2024,value=gcb_luc_projection)
+
+data_total_luc <- data_total_luc %>% 
+  mutate(gas="CO2 LULUCF") %>% 
+  select(-iso,-country)
+
+data_total <- rbind(data_total,data_total_luc) %>% 
+  filter(year>=1990)
+
+
+# Calculate abs change
+
+data_total <- data_total %>% 
+  filter(year>=max(data_total$year)-1) %>% 
+  arrange(gas,year) %>% 
+  group_by(gas) %>% 
+  mutate(abs_change=last(value)-first(value),
+         rel_change=growth_rate(year,value)$rate*100) %>% 
+  mutate(abs_change=round(abs_change,2))
+
+
+# Calculate share of total change
+
+data_total <- data_total %>% 
+  filter(year==2024) %>% 
+  mutate(share_abs_change=abs_change/sum(data_total$abs_change))
+  
+
+```
+
+### GHG change per decade & last year
+
+``` {r global_stats}
+
+## Aggregate emissions
+
+data_total <- data_edgar %>% 
+  group_by(year,gas) %>% 
+  summarise(value=sum(value,na.rm=T)/1e9)
+
+data_total_luc <- data_gcb_luc %>% 
+  filter(country=="Global") %>% 
+  mutate(value=value/1e9)
+
+
+# Add the GCB projection and join
+
+data_total_luc <- data_total_luc %>% 
+  add_row(year=2024,value=gcb_luc_projection)
+
+data_total_luc <- data_total_luc %>% 
+  mutate(gas="CO2 LULUCF") %>% 
+  select(-iso,-country)
+
+data_total <- rbind(data_total,data_total_luc) %>% 
+  filter(year>=1990)
+
+
+# aggregate
+
+data_total <- data_total %>% 
+  group_by(year) %>% 
+  summarise(value=sum(value,na.rm=TRUE))
+
+
+# calculate change per decade
+
+data_total <- data_total %>% 
+  mutate(cut=ifelse(year>=2010 & year <=2019,"2010-2019",NA)) %>% 
+  mutate(cut=ifelse(year>=2000 & year <=2009,"2000-2009",cut)) %>% 
+  mutate(cut=ifelse(year>=1990 & year <=1999,"1990-1999",cut)) %>% 
+  mutate(cut=ifelse(year>=1980 & year <=1989,"1980-1989",cut)) %>% 
+  mutate(cut=ifelse(year>=1970 & year <=1979,"1970-1979",cut)) %>% 
+  mutate(cut=ifelse(year %in% c(2022,2023),"2022-2023",cut))
+  
+data_total <- data_total %>% 
+  group_by(cut) %>% 
+  mutate(change=growth_rate(year,value)$rate) %>% 
+  mutate(change=change*100) %>% 
+  mutate(change=round(change,1))
+
+
+data_total <- data_total %>% 
+  mutate(cut=ifelse(year>=2006 & year <=2015,"2006-2015",NA)) %>% 
+  mutate(cut=ifelse(year>=2016 & year <=2025,"2016-2025",cut)) %>% 
+  filter(!is.na(cut)) %>% 
+  group_by(cut) %>% 
+  mutate(change=growth_rate(year,value)$rate) %>% 
+  mutate(change=change*100) %>% 
+  mutate(change=round(change,1))
+
+```
+
+### Share of non-CO2 emissions
+
+```{r share_non-CO2}
+
+
+## Aggregate emissions
+
+data_total <- data_edgar %>% 
+  group_by(year,gas) %>% 
+  summarise(value=sum(value,na.rm=T)/1e9)
+
+data_total_luc <- data_gcb_luc %>% 
+  filter(country=="Global") %>% 
+  mutate(value=value/1e9)
+
+
+# Add the GCB projection and join
+
+data_total_luc <- data_total_luc %>% 
+  add_row(year=2024,value=gcb_luc_projection)
+
+data_total_luc <- data_total_luc %>% 
+  mutate(gas="CO2 LULUCF") %>% 
+  select(-iso,-country)
+
+data_total <- rbind(data_total,data_total_luc) %>% 
+  filter(year>=1990)
+
+
+# calculate share
+
+data_total <- data_total %>% 
+  mutate(group=ifelse(gas %in% c("CH4","N2O","F-gases"),"non-CO2","CO2")) %>% 
+  group_by(year,group) %>% 
+  summarise(value=sum(value)) %>%
+  group_by(year) %>% 
+  mutate(total=sum(value)) %>%
+  ungroup() %>% 
+  mutate(share=value/total) %>% 
+  mutate(share=share*100) %>% 
+  mutate(share=round(share))
+
+
+
+```
+
+### per capita LDCs
+
+
+``` {r percapita_ldcs}
+
+## Get population data from the World Bank
+
+data_wdi_pop <- WDI(country = "all",indicator = "SP.POP.TOTL",start = 1970,end = 2024,extra=TRUE,language = "en") %>%
+  select(iso3c, country, year, SP.POP.TOTL) %>%
+  filter(!is.na(iso3c))
+
+data_wdi_pop$population <- data_wdi_pop$SP.POP.TOTL
+data_wdi_pop$iso <- data_wdi_pop$iso3c
+data_wdi_pop <- data_wdi_pop %>% select(-SP.POP.TOTL,-iso3c)
+
+################################################################# WARNING - using 2023 population data for 2024 as the latter hasn't been released yet !!!!!
+data_wdi_pop <- data_wdi_pop %>% 
+  arrange(country,year) %>% 
+  group_by(country) %>% 
+  fill(population,.direction="down") %>% 
+  ungroup()
+#################################################################
+
+
+## Aggregate emissions
+
+data_ldcs <- data_edgar %>% 
+  left_join(.,read.csv("https://raw.githubusercontent.com/openclimatedata/countrygroups/refs/heads/main/data/ldc.csv") %>% 
+  select(iso=Code) %>% 
+  mutate(LDC=1)) %>% 
+  filter(LDC==1) %>% 
+  group_by(iso,country,year) %>% 
+  summarise(value=sum(value,na.rm=T))
+
+
+data_ldcs <- data_ldcs %>% 
+  left_join(.,data_wdi_pop %>% select(iso,year,population),by = join_by(iso, year))
+
+data_ldcs <- data_ldcs %>% 
+  group_by(year) %>% 
+  summarise(value=sum(value),population=sum(population),value_pc=value/population)
+
+
+```
+
+### Growth of G20 emissions
+
+
+``` {r growth_g20}
+
+
+## Aggregate emissions data
+
+data_g20 <- data_edgar %>% 
+  filter(year>=1990) %>% 
+  group_by(iso,country,year) %>% 
+  summarise(value=sum(value,na.rm=TRUE))
+
+
+## Join EU
+
+data_data_g20_eu <- left_join(data_g20,cc_EU,by="iso") %>%
+  filter(!is.na(EU)) %>% 
+  mutate(iso="EU27") %>% 
+  select(-EU) %>%
+  mutate(country="European Union") %>% 
+  group_by(iso,country,year) %>% 
+  summarise(value=sum(value,na.rm=T)) %>% 
+  ungroup()
+
+data_g20 <- left_join(data_g20,cc_EU,by="iso") %>% 
+  filter(is.na(EU)) %>% 
+  bind_rows(.,data_data_g20_eu) %>% 
+  select(-EU)
+
+
+## Get G20 and non-G20
+
+data_g20 <- data_g20 %>% 
+  left_join(.,read.csv("https://raw.githubusercontent.com/openclimatedata/countrygroups/main/data/g20.csv") %>%
+              select(iso=Code) %>% 
+              mutate(G20="1")) %>% 
+ungroup() %>% 
+  mutate(G20=ifelse(iso=="EU27",1,G20)) %>% 
+  mutate(G20=ifelse(is.na(G20),0,G20))
+
+data_g20 <- data_g20 %>% 
+  group_by(G20,year) %>% 
+  summarise(value=sum(value,na.rm=TRUE))
+
+
+## Calculate growth
+
+data_g20 <- data_g20 %>% 
+  filter(year %in% c(2023,2024)) %>% 
+  group_by(G20) %>% 
+  mutate(change=growth_rate(year,value)$rate) %>% 
+  mutate(change=change*100)
+
+
+```
+
+
+
+## Data file: total emissions by country
+
+``` {r data_file_countries}
+
+
+## Aggregate emissions
+
+data_countries <- data_edgar %>% 
+  group_by(iso,country,sector_lv1,sector_lv2,sector_lv2_order,year) %>% 
+  summarise(value=sum(value,na.rm=T)/1e6) %>% 
+  filter(year>=1990)
+
+
+## Join LUC data
+
+data_countries <- rbind(data_countries,data_inv_luc)
+
+data_countries <- data_countries %>% 
+  ungroup() %>% 
+  arrange(iso,year) %>% 
+  mutate(country=ifelse(iso=="EU27","European Union",country)) %>% 
+  mutate(country=na.locf(country))
+
+
+## Add Europe
+
+
+data_countries_eu <- data_countries %>% 
+  left_join(.,cc_EU,by="iso") %>% 
+  filter(!is.na(EU)) %>% 
+  mutate(iso="EU27",country="European Union") %>% 
+  group_by(iso,country,sector_lv1,sector_lv2,sector_lv2_order,year) %>% 
+  summarise(value=sum(value))
+
+data_countries <- rbind(data_countries %>% filter(iso!="EU27"),data_countries_eu)
+
+
+## Add G20
+
+cc_g20 <- read.csv("https://raw.githubusercontent.com/openclimatedata/countrygroups/main/data/g20.csv") %>% 
+  select(iso=Code) %>% 
+  mutate(G20="1") %>% 
+  mutate(iso=ifelse(iso=="EUU","EU27",iso)) %>% 
+  filter(!iso %in% c("DEU","FRA","ITA"))
+
+data_countries_g20 <- data_countries %>% 
+  left_join(.,cc_g20,by="iso") %>% 
+  filter(!is.na(G20)) %>% 
+  mutate(iso="G20",country="G20 (excl. African Union)") %>% 
+  group_by(iso,country,sector_lv1,sector_lv2,sector_lv2_order,year) %>% 
+  summarise(value=sum(value)) %>% 
+  mutate(value=ifelse(sector_lv2=="Land use change (LULUCF)" & year <2000,NA,value))
+
+data_countries <- rbind(data_countries,data_countries_g20)
+
+
+## Calculate and join totals (excluding LULUCF)
+
+data_countries <- data_countries %>% 
+  rbind(.,data_countries %>% 
+          filter(sector_lv2!="Land use change (LULUCF)") %>% 
+          group_by(iso,country,year) %>% 
+          summarise(value=sum(value,na.rm=TRUE)) %>% 
+          mutate(sector_lv1="Total (excl. LULUCF)") %>% 
+          mutate(sector_lv2="Total (excl. LULUCF)") %>% 
+          mutate(sector_lv2_order=10))
+
+
+## Order and spread
+
+country_order <- data_countries %>% 
+  ungroup() %>% 
+  filter(year==max(data_countries$year),sector_lv2=="Total (excl. LULUCF)") %>% 
+  arrange(desc(value)) %>% 
+  mutate(country_order=1) %>% 
+  mutate(country_order=cumsum(country_order))
+
+data_countries <- data_countries %>% 
+  left_join(.,country_order %>% select(iso,country_order)) %>% 
+  spread(.,year,value) %>% 
+  arrange(country_order,iso,sector_lv2_order)
+
+
+## Calculate change
+
+data_countries_change <- data_countries %>% 
+  select(iso,country,sector_lv1,sector_lv2,`2023`,`2024`) %>% 
+  gather(.,year,value,`2023`:`2024`) %>%
+  mutate(year=as.numeric(year)) %>% 
+  arrange(iso,country,sector_lv1,sector_lv2,year) %>% 
+  group_by(iso,country,sector_lv1,sector_lv2) %>% 
+  mutate(change_last_year_abs=last(value)-first(value)) %>% 
+  mutate(change_last_year_rel=growth_rate(year,value)$rate) %>% 
+  mutate(change_last_year_rel=paste0(round(change_last_year_rel*100,1),"%")) %>% 
+  mutate(change_last_year_rel=ifelse(change_last_year_rel=="NA%",NA,change_last_year_rel)) %>% 
+  select(-year,-value) %>% 
+  distinct()
+
+data_countries <- data_countries %>% 
+  left_join(.,data_countries_change)
+
+# Save data to excel file
+
+wb <- createWorkbook()
+options("openxlsx.numFmt" = "0.00")
+addWorksheet(wb,"total_by_country")
+writeData(wb, sheet = "total_by_country", data_countries %>% ungroup() %>% select(-sector_lv2_order,-country_order), colNames = T, rowNames = F)
+
+saveWorkbook(wb,"results/UNEP-Gap-Report-2025-Chapter-2-Data-Countries.xlsx",overwrite=T)
+
+
+``` 
+
+
+
+``` {r save}
+
+```
