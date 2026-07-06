@@ -123,7 +123,7 @@ data_ghg <- left_join(data_ghg,newnames,by="iso") %>%
 ## aggregate sectors
 
 data_ghg <- left_join(data_ghg,read.xlsx("sources/cc_sectors.xlsx",sheet = "sectors"),by=join_by(code, code_description))
-check <- blarg %>% 
+check <- data_ghg %>% 
   filter(is.na(sector_lv3))
 
 data_ghg$gas <- as.factor(data_ghg$gas)
@@ -146,6 +146,8 @@ blarg <- data_ghg %>% filter(year==2023) %>% group_by(code,code_description,sect
 data_edgar <- data_ghg %>% 
   group_by(across(c(-code,-code_description,-sector_lv2_codes,-sector_lv3_codes))) %>% 
   summarise(value=sum(value,na.rm=TRUE))
+
+data_edgar$country <- gsub("Turkey","Türkiye",data_edgar$country)
 
 save(data_edgar,file="data/data_edgar.RData")
 
