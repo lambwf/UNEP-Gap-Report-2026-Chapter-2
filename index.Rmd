@@ -1,5 +1,5 @@
 ---
-title: "UNEP Emissions Gap Report 2025 - Chapter 2 Figures"
+title: "UNEP Emissions Gap Report 2026 - Chapter 2 Figures"
 output: 
   html_document:
     self_contained: true
@@ -167,15 +167,15 @@ text {
 
 
 <div class="banner">
-<div class="title">UNEP Emissions Gap Report 2025 - Chapter 2 Figures</div>
+<div class="title">UNEP Emissions Gap Report 2026 - Chapter 2 Figures</div>
 <div class="link"><a href="https://lambwf.github.io/">William F. Lamb</a> | 
-<a href="https://github.com/lambwf/UNEP-Gap-Report-2025-Chapter-2" target="_blank">Source Code</a>
+<a href="https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2" target="_blank">Source Code</a>
 </div>
 </div>
 <div class='grid'>
 
 <div class="text-container">
-<p>Each year the UN Environment Programme <a href="https://www.unep.org/resources/emissions-gap-report-2025">Emissions Gap Report</a> provides an assessment of the state of progress towards the Paris Agreement. In chapter 2 of the report, we track global, national and sectoral greenhouse gas emissions trends. Here you can find a set of figures developed for the chapter.</p>
+<p>Each year the UN Environment Programme <a href="https://www.unep.org/resources/emissions-gap-report-2026">Emissions Gap Report</a> provides an assessment of the state of progress towards the Paris Agreement. In chapter 2 of the report, we track global, national and sectoral greenhouse gas emissions trends. Here you can find a set of figures developed for the chapter.</p>
 
 <p>The following underlying sources were used for the analysis:</p>
 <ul>
@@ -186,6 +186,15 @@ text {
 </ul>
 
 <p>Please cite these sources as well as the <a href="xxx">report</a> when using our figures.</p>
+
+<p>Previous versions of this analysis can be found here:</p>
+<ul>
+<li><a href="https://lambwf.github.io/UNEP-Gap-Report-2025-Chapter-2/
+">UNEP Emissions Gap Report 2025</a></li>
+<li><a href="https://lambwf.github.io/UNEP-Gap-Report-2024-Chapter-2/
+">UNEP Emissions Gap Report 2024</a></li>
+</ul>
+
 </div>
 
 
@@ -196,32 +205,32 @@ text {
 filenames <- list.files("results/standard/", pattern="*.png", full.names=TRUE)
 
 filenames <- c(
-  "results/standard/UNEP-EGR-2025-total-gas-trend.png",
-  "results/standard/UNEP-EGR-2025-total-uncertainties.png",
-  "results/standard/UNEP-EGR-2025-total-sector-trend.png",
-  "results/standard/UNEP-EGR-2025-total-fossil.png",
-  "results/standard/UNEP-EGR-2025-total-luc-differences.png",
-  "results/standard/UNEP-EGR-2025-top-contribution-annual.png",
-  "results/standard/UNEP-EGR-2025-top-contribution-decade.png",
-  "results/standard/UNEP-EGR-2025-top-shares-excl-LULUCF.png",
-  "results/standard/UNEP-EGR-2025-G20-shares-excl-LULUCF.png",
-  "results/standard/UNEP-EGR-2025-top-trend-exLUC.png",
-  "results/standard/UNEP-EGR-2025-top-percapita-exLUC.png",
-  "results/standard/UNEP-EGR-2025-percapita-change.png",
-  "results/standard/UNEP-EGR-2025-sankey.png")
+  "results/standard/UNEP-EGR-2026-total-gas-trend.png",
+  "results/standard/UNEP-EGR-2026-total-uncertainties.png",
+  "results/standard/UNEP-EGR-2026-total-sector-trend.png",
+  "results/standard/UNEP-EGR-2026-total-fossil.png",
+  "results/standard/UNEP-EGR-2026-total-luc-differences.png",
+  "results/standard/UNEP-EGR-2026-top-contribution-annual.png",
+  "results/standard/UNEP-EGR-2026-top-contribution-decade.png",
+  "results/standard/UNEP-EGR-2026-top-shares-excl-LULUCF.png",
+  "results/standard/UNEP-EGR-2026-G20-shares-excl-LULUCF.png",
+  "results/standard/UNEP-EGR-2026-top-trend-exLUC.png",
+  "results/standard/UNEP-EGR-2026-top-percapita-exLUC.png",
+  "results/standard/UNEP-EGR-2026-percapita-change.png",
+  "results/standard/UNEP-EGR-2026-sankey.png")
 
 
 for (file in filenames) {
 
   plot <- sub(".*/(.*)\\.png", "\\1", file)
 
-  link_data <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2025-Chapter-2/raw/main/results/standard/", plot, ".xlsx'>data</a>")
+  link_data <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/", plot, ".xlsx'>data</a>")
 
-  link_png <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2025-Chapter-2/raw/main/results/standard/", plot, ".png'>png</a>")
+  link_png <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/", plot, ".png'>png</a>")
 
-  link_pdf <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2025-Chapter-2/raw/main/results/standard/", plot, ".pdf'>pdf</a>")
+  link_pdf <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/", plot, ".pdf'>pdf</a>")
 
-  link_svg <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2025-Chapter-2/raw/main/results/standard/", plot, ".svg'>svg</a>")
+  link_svg <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/", plot, ".svg'>svg</a>")
   
   
   
@@ -261,14 +270,14 @@ for (file in filenames) {
   plot <- sub(".*/(.*)\\.png", "\\1", file)
 
   link_data <- ifelse(grepl("atrend",file),
-                            paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2025-Chapter-2/raw/main/results/standard/countries/UNEP-EGR-2025-country-trend.xlsx'>data</a>"),
-                            paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2025-Chapter-2/raw/main/results/standard/countries/UNEP-EGR-2025-country-change.xlsx'>data</a>"))
+                            paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/UNEP-EGR-2026-country-trend.xlsx'>data</a>"),
+                            paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/UNEP-EGR-2026-country-change.xlsx'>data</a>"))
 
-  link_png <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2025-Chapter-2/raw/main/results/standard/countries/", plot, ".png'>png</a>")
+  link_png <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/", plot, ".png'>png</a>")
 
-  link_pdf <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2025-Chapter-2/raw/main/results/standard/countries/", plot, ".pdf'>pdf</a>")
+  link_pdf <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/", plot, ".pdf'>pdf</a>")
 
-  link_svg <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2025-Chapter-2/raw/main/results/standard/countries/", plot, ".svg'>svg</a>")
+  link_svg <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/", plot, ".svg'>svg</a>")
   
   
   cat("<div class='figure-container'>")
