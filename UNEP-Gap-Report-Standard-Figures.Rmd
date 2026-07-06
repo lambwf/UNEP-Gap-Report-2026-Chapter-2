@@ -14,6 +14,7 @@ options(dplyr.summarise.inform = FALSE)
 rm(list = ls())
 
 library(tidyverse)
+source("functions.R")
 library(openxlsx)
 library(countrycode)
 library(ggrepel)
@@ -146,48 +147,15 @@ data_total <- data_total %>%
   arrange(year)
 
 
-## Calculate the rate of change up to 10 years ago
-label_long_term <- data_total %>%
-  filter(year<=max_year-9) %>% 
-  group_by(year) %>% 
-  summarise(value=sum(value)) %>% 
-  mutate(change=growth_rate(year,value)$rate*100) %>% 
-  mutate(change=round(change,1)) %>% 
-  mutate(change=ifelse(change>0,paste0("+",change,"%/yr"),paste0("-",abs(change),"%/yr"))) %>%
-  slice(c(1, n()))
-
-
-## Calculate the rate of change over the past 10 years
-label_medium_term <- data_total %>%
-  filter(year>=max_year-9) %>% 
-  group_by(year) %>% 
-  summarise(value=sum(value)) %>% 
-  mutate(change=growth_rate(year,value)$rate*100) %>% 
-  mutate(change=round(change,1)) %>% 
-  mutate(change=ifelse(change>0,paste0("+",change,"%/yr"),paste0("-",abs(change),"%/yr"))) %>%
-  slice(c(1, n()))
-
-
-## Calculate the rate of change over the past 3 years
-label_short_term <- data_total %>%
-  filter(year>=max_year-1) %>% 
-  group_by(year) %>% 
-  summarise(value=sum(value)) %>% 
-  mutate(change=growth_rate(year,value)$rate*100) %>% 
-  mutate(change=round(change,1)) %>% 
-  mutate(change=ifelse(change>0,paste0("+",change,"%/yr"),paste0("-",abs(change),"%/yr"))) %>%
-  slice(c(1, n()))
+## Calculate the rate of change for different time periods
+label_long_term <- calculate_growth_label(data_total, c(1990, max_year - 9))
+label_medium_term <- calculate_growth_label(data_total, c(max_year - 9, max_year))
+label_short_term <- calculate_growth_label(data_total, c(max_year - 1, max_year))
 
 
 ## Create labels for gases, calculate position
 
-label_gases <- data_total %>% 
-  filter(year==max(data_total$year)) %>% 
-  arrange(desc(gas)) %>%
-  mutate(label_position=value) %>%
-  mutate(label_position=cumsum(label_position)) %>%
-  mutate(label_position=label_position-(value/2)) %>%
-  select(gas,label_position)
+label_gases <- calculate_label_positions(data_total, "gas")
 
 
 ## Create labels for the totals
@@ -241,7 +209,7 @@ p1 <- data_total %>% ggplot(.) +
         legend.position = "none") +
   labs(title="Total net greenhouse gas emissions",
        subtitle=bquote(paste("GtCO"[2], "e/year")),
-       caption=paste0("⌂ ",label_unep,"    ⌂ Data: ",label_edgar,", ",label_gcb,"\n⌂ Note: GWP100 AR6; net land use change (LULUCF) emissions based on bookkeeping conventions"))
+       caption=paste0("\u2302 ",label_unep,"    \u2302 Data: ",label_edgar,", ",label_gcb,"\n\u2302 Note: GWP100 AR6; net land use change (LULUCF) emissions based on bookkeeping conventions"))
 
 
 p2 <- label_gases %>% 
@@ -267,26 +235,16 @@ plot <- p1 + plot_spacer() + p2 + plot_layout(widths=c(5,-0.25,1))
 plot
 
 
-ggsave(plot,filename = "UNEP-EGR-2025-total-gas-trend.png",path = "results/standard/",device = "png",height = 4,width=8,dpi=300)
-ggsave(plot,filename = "UNEP-EGR-2025-total-gas-trend.pdf",path = "results/standard/",device = cairo_pdf,height = 4,width=8)
-ggsave(plot,filename = "UNEP-EGR-2025-total-gas-trend.svg",path = "results/standard/",device = 'svg',height = 4,width=8)
+save_figure(plot, "UNEP-EGR-2025-total-gas-trend", height = 4, width = 8)
 
 
 ## Save data
 
-wb <- createWorkbook()
-addWorksheet(wb,"info")
-addWorksheet(wb,"data")
-info = data.frame(a=c("Author","Contact","Data sources","See also"),
+info <- data.frame(a=c("Author","Contact","Data sources","See also"),
                   b=c("William F. Lamb",
                       "william.lamb@pik-potsdam.de",paste0(ref_edgar,"; ",ref_gcb),ref_lamb))
 
-writeData(wb, sheet = "info",info,colNames = F, rowNames = F)
-writeData(wb, sheet = "data",data_total %>% mutate(units="GtCO2e/year (GWP100 AR6)") %>% mutate(year=as.factor(year)) %>% select(gas,units,year,value),colNames = T, rowNames = F)
-
-saveWorkbook(wb,paste0("results/standard/UNEP-EGR-2025-total-gas-trend.xlsx"),overwrite=T)
-
-
+save_data(data_total %>% mutate(units="GtCO2e/year (GWP100 AR6)") %>% mutate(year=as.factor(year)) %>% select(gas,units,year,value), "UNEP-EGR-2025-total-gas-trend")
 
 ```
 
