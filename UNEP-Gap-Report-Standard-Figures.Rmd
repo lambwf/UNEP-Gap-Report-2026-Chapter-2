@@ -71,7 +71,7 @@ gcb_luc_projection <- 1.1*3.664
 
 ## max year
 
-max_year=2024
+max_year=2025
 
 
 ## Calculate high emitters
@@ -127,8 +127,8 @@ data_total_luc <- data_gcb_luc %>%
 
 # Add the GCB projection and join
 
-#data_total_luc <- data_total_luc %>% 
-#  add_row(year=max_year,value=gcb_luc_projection)
+data_total_luc <- data_total_luc %>%
+ add_row(year=max_year,value=gcb_luc_projection)
 
 data_total_luc <- data_total_luc %>% 
   mutate(gas="CO2 LULUCF") %>% 
@@ -308,8 +308,8 @@ data_sectors_luc <- data_gcb_luc %>%
 
 # Add the GCB projection for 2024 and join
 
-#data_sectors_luc <- data_sectors_luc %>% 
-#  add_row(year=max_year,value=gcb_luc_projection)
+data_sectors_luc <- data_sectors_luc %>%
+ add_row(year=max_year,value=gcb_luc_projection)
 
 data_sectors_luc <- data_sectors_luc %>%
   mutate(sector_lv2="Land use change (LULUCF)") %>% 
@@ -887,8 +887,8 @@ data_uncertainties_luc <- data_gcb_luc %>%
 
 # Add the GCB projection and join
 
-#data_uncertainties_luc <- data_uncertainties_luc %>%
-#  add_row(year=max_year,value=gcb_luc_projection)
+data_uncertainties_luc <- data_uncertainties_luc %>%
+ add_row(year=max_year,value=gcb_luc_projection)
 
 data_uncertainties_luc <- data_uncertainties_luc %>% 
   mutate(gas="CO2 LULUCF") %>% 
@@ -960,7 +960,7 @@ plot <- data_uncertainties %>% ggplot(.,aes(x=value,y=gas,fill=gas,label=label))
         panel.grid.major.y = element_blank(),
         plot.title = element_text(margin=margin(t=15))) +
   labs(title="Total net greenhouse gas emissions and their uncertainties",
-       subtitle=bquote(paste("GtCO"[2], "e in 2024")),
+       subtitle=bquote(paste("GtCO"[2], "e in 2025")),
        caption=paste0("⌂ ",label_unep,"    ⌂ Data: ",label_edgar,", ",label_gcb,"\n⌂ Note: GWP100 AR6; net land use change (LULUCF) emissions based on bookkeeping conventions"))
 plot 
 
@@ -997,15 +997,15 @@ saveWorkbook(wb,paste0("results/standard/UNEP-EGR-2026-total-uncertainties.xlsx"
 source("../Codebase/load_gcb_countries_v2025.R")
 
 data_luc_diff <- load_gcb_countries_luc(
-  readxl::read_xlsx('sources/National_LandUseChange_Carbon_Emissions_2025v0.2.xlsx',range="A8:GT182",sheet=2),
-  readxl::read_xlsx('sources/National_LandUseChange_Carbon_Emissions_2025v0.2.xlsx',range="A8:GT182",sheet=3),
-  readxl::read_xlsx('sources/National_LandUseChange_Carbon_Emissions_2025v0.2.xlsx',range="A8:GT182",sheet=4)) %>% 
+  readxl::read_xlsx('sources/National_LandUseChange_Carbon_Emissions_2025v0.2.xlsx',range="A8:GT183",sheet=2),
+  readxl::read_xlsx('sources/National_LandUseChange_Carbon_Emissions_2025v0.2.xlsx',range="A8:GT183",sheet=3),
+  readxl::read_xlsx('sources/National_LandUseChange_Carbon_Emissions_2025v0.2.xlsx',range="A8:GT183",sheet=4)) %>% 
   filter(country=="Global") %>% 
   rename(BLUE=blue,OSCAR=oscar,LUCE=luce,`Bookkeeping average`=mean) %>% 
   select(-country,-iso)
 
-# data_luc_diff <- data_luc_diff %>% 
-#   add_row(year=2024,`Bookkeeping average`=gcb_luc_projection)
+data_luc_diff <- data_luc_diff %>%
+  add_row(year=2024,`Bookkeeping average`=gcb_luc_projection)
 
 
 ## Add the inventory LULUCF and join
@@ -1476,7 +1476,7 @@ p2 <- data_percap %>%
                filter(country %in% high_emitters) %>% 
                filter(year %in% year_higlight),
              shape=21,fill="white") +
-  scale_x_continuous(breaks = c(1990,2000,2010,2024)) +
+  scale_x_continuous(breaks = c(1990,2000,2010,max_year)) +
   theme_wl() +
   scale_colour_manual(values=colours_top6) +
   theme(legend.position="none",
@@ -1616,7 +1616,7 @@ p2 <- data_trend %>%
                filter(country %in% high_emitters) %>% 
                filter(year %in% year_higlight),
              shape=21,fill="white") +
-  scale_x_continuous(breaks = c(1990,2000,2010,max(data_trend$year))) +
+  scale_x_continuous(breaks = c(1990,2000,2010,max_year)) +
   scale_y_continuous(limits = c(0,19000)) +
   theme_wl() +
   scale_colour_manual(values=colours_top6) +
@@ -2565,26 +2565,26 @@ data_contribution <- data_contribution %>%
   summarise(value=sum(value,na.rm=T))
 
 
-## Join land use change
-
-data_contribution_luc <- data_gcb_luc %>% 
-  filter(country=="Global") %>% 
-  mutate(value=value/1e6)
-
-# Add the GCB projection and join
-
-data_contribution_luc <- data_contribution_luc %>% 
-  add_row(year=2024,value=gcb_luc_projection*1000) %>% 
-  mutate(iso="LUC",country="Land use change (LULUCF)") %>% 
-  filter(year %in% c(max(data_edgar$year),max(data_edgar$year)-1))
-
-data_contribution <- rbind(data_contribution,data_contribution_luc)
+# ## Join land use change
+# 
+# data_contribution_luc <- data_gcb_luc %>% 
+#   filter(country=="Global") %>% 
+#   mutate(value=value/1e6)
+# 
+# # Add the GCB projection and join
+# 
+# data_contribution_luc <- data_contribution_luc %>% 
+#   add_row(year=2025,value=gcb_luc_projection*1000) %>% 
+#   mutate(iso="LUC",country="Land use change (LULUCF)") %>% 
+#   filter(year %in% c(max(data_edgar$year),max(data_edgar$year)-1))
+# 
+# data_contribution <- rbind(data_contribution,data_contribution_luc)
 
 
 ## Include top6 by current emissions + transport + luc and aggregate rest of world
 
 countries <- data_contribution %>% 
-  filter(year==2024) %>% 
+  filter(year==2025) %>% 
   arrange(desc(value)) %>% 
   head(8) %>% 
   mutate(group=1)
@@ -2685,7 +2685,7 @@ p1 <- data_contribution %>%
         plot.title = element_text(margin=margin(t=15)),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) +
-  labs(title="Contributions to the change in 2024 greenhouse gas emissions",
+  labs(title="Contributions to the change in 2025 greenhouse gas emissions",
        subtitle=bquote(paste("MtCO"[2], "e/year")),
        caption="⌂ UNEP Emissions Gap Report 2025    ⌂ Data: EDGAR v10, GCB 2024 \n⌂ Note: GWP100 AR6; Stippled land use change area refers to the global total (bookkeeping convention).") +
   coord_cartesian(clip = "off")
@@ -2797,26 +2797,26 @@ data_contribution <- data_contribution %>%
   summarise(value=sum(value,na.rm=T))
 
 
-## Join land use change
-
-data_contribution_luc <- data_gcb_luc %>% 
-  filter(country=="Global") %>% 
-  mutate(value=value/1e6)
-
-# Add the GCB projection and join
-
-data_contribution_luc <- data_contribution_luc %>% 
-  add_row(year=2024,value=gcb_luc_projection*1000) %>% 
-  mutate(iso="LUC",country="Land use change (LULUCF)") %>% 
-  filter(year %in% c(max(data_edgar$year),max(data_edgar$year)-1))
-
-data_contribution <- rbind(data_contribution,data_contribution_luc)
+# ## Join land use change
+# 
+# data_contribution_luc <- data_gcb_luc %>% 
+#   filter(country=="Global") %>% 
+#   mutate(value=value/1e6)
+# 
+# # Add the GCB projection and join
+# 
+# data_contribution_luc <- data_contribution_luc %>% 
+#   add_row(year=2024,value=gcb_luc_projection*1000) %>% 
+#   mutate(iso="LUC",country="Land use change (LULUCF)") %>% 
+#   filter(year %in% c(max(data_edgar$year),max(data_edgar$year)-1))
+# 
+# data_contribution <- rbind(data_contribution,data_contribution_luc)
 
 
 ## Include top6 by current emissions + transport + luc and aggregate rest of world
 
 countries <- data_contribution %>% 
-  filter(year==2024) %>% 
+  filter(year==2025) %>% 
   arrange(desc(value)) %>% 
   head(8) %>% 
   mutate(TOP=1) %>% 
@@ -2921,7 +2921,7 @@ p1 <- data_contribution %>%
         plot.title = element_text(margin=margin(t=15)),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) +
-  labs(title="Contributions to the change in 2024 greenhouse gas emissions",
+  labs(title="Contributions to the change in 2025 greenhouse gas emissions",
        subtitle=bquote(paste("MtCO"[2], "e/year")),
        caption="⌂ UNEP Emissions Gap Report 2025    ⌂ Data: EDGAR v10, GCB 2024 \n⌂ Note: GWP100 AR6; Stippled land use change area refers to the global total (bookkeeping convention).") +
   coord_cartesian(clip = "off")
@@ -3972,7 +3972,7 @@ data_countries <- data_edgar %>%
 
 data_countries_luc <- data_inv_luc %>% 
   spread(.,year,value) %>% 
-  mutate(`2024`=NA)
+  mutate(`2025`=NA)
 
 data_countries_luc <- data_countries_luc %>% 
   gather(.,year,value,-iso,-sector_lv1,-sector_lv2,-sector_lv2_order) %>% 
@@ -3981,7 +3981,7 @@ data_countries_luc <- data_countries_luc %>%
   mutate(year=as.numeric(year))
 
 
-# Project 2024 LUC (but hatch this is in the main plot)
+# Project LUC (but hatch this is in the main plot)
 
 data_countries_luc <- data_countries_luc %>% 
   group_by(iso) %>%
@@ -4014,7 +4014,7 @@ data_countries_eu <- data_countries %>%
   mutate(iso="EU27",country="European Union") %>% 
   group_by(iso,country,sector_lv2,sector_lv2_order,year) %>% 
   summarise(value=sum(value)) %>% 
-  mutate(gapfilled=ifelse(sector_lv2=="Land use change (LULUCF)" & year==2024,"yes","no"))
+  mutate(gapfilled=ifelse(sector_lv2=="Land use change (LULUCF)" & year==2025,"yes","no"))
 
 data_countries <- rbind(data_countries,data_countries_eu)
 
@@ -4127,6 +4127,7 @@ plot_country <- function(countries,data_countries) {
 
 
 plot_country("Brazil",data_countries)
+plot_country("United States of America",data_countries)
 
 ## Filter to G20 countries
 

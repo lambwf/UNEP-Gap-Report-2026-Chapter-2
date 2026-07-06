@@ -4,16 +4,17 @@ library(openxlsx)
 library(tidyverse)
 library(countrycode)
 
-source("https://raw.githubusercontent.com/lambwf/Codebase/main/load_edgar_v10.R")
+#source("https://raw.githubusercontent.com/lambwf/Codebase/main/load_edgar_v10.R")
 source("../Codebase/load_gcb_countries_v2025.R")
+source("../Codebase/load_edgar_v2026.R")
 
 ## load EDGAR data (https://edgar.jrc.ec.europa.eu/dataset_ghg80)
 
-edgar_co2 <- read.xlsx("sources/not public/EDGAR_2025_CO2_1970_2024_v2.xlsx",sheet="IPCC 2006",startRow=9)
-edgar_ch4 <- read.xlsx("sources/not public/EDGAR_2025_CH4_1970_2024.xlsx",sheet="IPCC 2006",startRow = 9)
-edgar_n2o <- read.xlsx("sources/not public/EDGAR_2025_N2O_1970_2024.xlsx",sheet="IPCC 2006",startRow = 9)
-edgar_fgas <- read.xlsx("sources/not public/EDGAR_2025_F-gases_1970_2024.xlsx",sheet="IPCC 2006",startRow = 9)
-data_ghg <- load_edgar(edgar_co2,edgar_ch4,edgar_n2o,edgar_fgas)
+edgar_co2 <- read.xlsx("sources/not public/IEA_EDGAR_CO2_1970_2025.xlsx",sheet="IPCC 2006",startRow=10)
+edgar_ch4 <- read.xlsx("sources/not public/EDGAR_CH4_1970_2025.xlsx",sheet="IPCC 2006",startRow = 10)
+edgar_n2o <- read.xlsx("sources/not public/EDGAR_N2O_1970_2025.xlsx",sheet="IPCC 2006",startRow = 10)
+edgar_fgas <- read.xlsx("sources/not public/EDGAR_F-Gases_1970_2025.xlsx",sheet="IPCC 2006",startRow = 10)
+data_ghg <- load_edgar(edgar_co2,edgar_ch4,edgar_n2o,edgar_fgas,2025)
 
 
 ## join GWPs and calculate CO2e
@@ -26,8 +27,8 @@ data_ghg <- left_join(data_ghg,gwps %>% select(gas=Species,AR6GWP100)) %>%
 
 ## remove biogenic CO2
 
-data_ghg <- data_ghg %>%
-  filter(gas!="CO2bio")
+#data_ghg <- data_ghg %>%
+#  filter(gas!="CO2bio")
 
 
 ## check all gwps joined
@@ -78,7 +79,7 @@ data_inv_luc <- read.csv("sources/timeseries_NGHGI_v3.1.csv") %>%
 #   select(iso=Code) %>% 
 #   mutate(EU="1")
 
-load("../Tidy-GHG-Inventories/data/data_crts_v1.3.RData")
+load("../Tidy-GHG-Inventories/data/data_crts_v2.1.RData")
 
 data_crts <- data_crts %>% 
   filter(sector_lv1=="Land use, land-use change and forestry") %>% 
@@ -121,7 +122,9 @@ data_ghg <- left_join(data_ghg,newnames,by="iso") %>%
 
 ## aggregate sectors
 
-data_ghg <- left_join(data_ghg,read.xlsx("sources/cc_sectors.xlsx"),by=join_by(code, code_description))
+data_ghg <- left_join(data_ghg,read.xlsx("sources/cc_sectors.xlsx",sheet = "sectors"),by=join_by(code, code_description))
+check <- blarg %>% 
+  filter(is.na(sector_lv3))
 
 data_ghg$gas <- as.factor(data_ghg$gas)
 data_ghg$gas <- fct_relevel(data_ghg$gas,"CO2 Fossil","CH4","N2O","F-gases")
@@ -175,7 +178,7 @@ save(data_gcb_luc,file="data/data_gcb_luc.RData")
 
 # Global Carbon Project CO2 FFI (https://globalcarbonbudget.org/carbonbudget2023/)
 
-data_gcb_co2_ffi <- load_gcb_countries_ffi(read.xlsx("sources/National_Fossil_Carbon_Emissions_2024v1.0-1.xlsx",sheet=2,startRow = 12))
+data_gcb_co2_ffi <- load_gcb_countries_ffi(read.xlsx("sources/National_Fossil_Carbon_Emissions_2025_v0.3.xlsx",sheet=2,startRow = 12))
 
 ### consistent names
 
@@ -219,16 +222,6 @@ data_wdi_pop <- data_wdi_pop %>%
   mutate(year=as.numeric(year))
 
 save(data_wdi_pop,file="data/data_wdi_pop.RData")
-
-################################################################# WARNING - using 2023 population data for 2024 as the latter hasn't been released yet !!!!!
-data_wdi_pop <- data_wdi_pop %>% 
-  arrange(country,year) %>% 
-  group_by(country) %>% 
-  fill(population,.direction="down") %>% 
-  ungroup()
-#################################################################
-
-
 
 
 ######## CO2 emissions from IEA, rescaled to EDGAR
