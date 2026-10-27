@@ -38,9 +38,6 @@ save_figure <- function(plot, filename_prefix, height, width) {
 }
 
 
-
-
-
 save_data <- function(data, sources, cite, filename_prefix) {
   
   wb <- createWorkbook()
@@ -58,4 +55,22 @@ save_data <- function(data, sources, cite, filename_prefix) {
   
   saveWorkbook(wb,paste0("results/standard/",filename_prefix,".xlsx"),overwrite=T)
   
+}
+
+
+add_growth_bracket <- function(plot, label_data, y_offset = 10) {
+  start_year <- first(label_data$year)
+  end_year <- last(label_data$year)
+  y_pos <- last(label_data$value) + y_offset
+  change_label <- label_data$change
+  
+  plot +
+    annotate("segment", x = start_year, xend = end_year, y = y_pos, yend = y_pos,
+             color = "#636363", size = 0.25) +
+    annotate("segment", x = start_year, xend = start_year, y = y_pos, yend = y_pos - 2,
+             color = "#636363", size = 0.25) +
+    annotate("segment", x = end_year, xend = end_year, y = y_pos, yend = y_pos - 2,
+             color = "#636363", size = 0.25) +
+    annotate("text", x = (start_year + end_year)/2, y = y_pos + 2,
+             label = change_label, vjust = 0, size = 3.5, color = "#636363")
 }
