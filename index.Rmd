@@ -169,7 +169,7 @@ text {
 <div class="banner">
 <div class="title">UNEP Emissions Gap Report 2026 - Chapter 2 Figures</div>
 <div class="link"><a href="https://lambwf.github.io/">William F. Lamb</a> | 
-<a href="https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2" target="_blank">Source Code</a>
+<a href="https://github.com/pik-ecs/UNEP-Gap-Report-2026-Chapter-2" target="_blank">Source Code</a>
 </div>
 </div>
 <div class='grid'>
@@ -189,10 +189,8 @@ text {
 
 <p>Previous versions of this analysis can be found here:</p>
 <ul>
-<li><a href="https://lambwf.github.io/UNEP-Gap-Report-2025-Chapter-2/
-">UNEP Emissions Gap Report 2025</a></li>
-<li><a href="https://lambwf.github.io/UNEP-Gap-Report-2024-Chapter-2/
-">UNEP Emissions Gap Report 2024</a></li>
+<li><a href="https://pik-ecs.github.io/UNEP-Gap-Report-2025-Chapter-2/">UNEP Emissions Gap Report 2025</a></li>
+<li><a href="https://pik-ecs.github.io/UNEP-Gap-Report-2024-Chapter-2/">UNEP Emissions Gap Report 2024</a></li>
 </ul>
 
 </div>
@@ -219,20 +217,17 @@ filenames <- c(
   "results/standard/UNEP-EGR-2026-main-sankey.png")
 
 
-
-
-
 for (file in filenames) {
 
   plot <- sub(".*/(.*)\\.png", "\\1", file)
 
-  link_data <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/", plot, ".xlsx'>data</a>")
+  link_data <- paste0("<a target='_blank' href='https://github.com/pik-ecs/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/", plot, ".xlsx'>data</a>")
 
-  link_png <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/", plot, ".png'>png</a>")
+  link_png <- paste0("<a target='_blank' href='https://github.com/pik-ecs/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/", plot, ".png'>png</a>")
 
-  link_pdf <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/", plot, ".pdf'>pdf</a>")
+  link_pdf <- paste0("<a target='_blank' href='https://github.com/pik-ecs/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/", plot, ".pdf'>pdf</a>")
 
-  link_svg <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/", plot, ".svg'>svg</a>")
+  link_svg <- paste0("<a target='_blank' href='https://github.com/pik-ecs/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/", plot, ".svg'>svg</a>")
   
   
   
@@ -272,14 +267,14 @@ for (file in filenames) {
   plot <- sub(".*/(.*)\\.png", "\\1", file)
 
   link_data <- ifelse(grepl("atrend",file),
-                            paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/UNEP-EGR-2026-country-trend.xlsx'>data</a>"),
-                            paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/UNEP-EGR-2026-country-change.xlsx'>data</a>"))
+                            paste0("<a target='_blank' href='https://github.com/pik-ecs/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/UNEP-EGR-2026-country-trend.xlsx'>data</a>"),
+                            paste0("<a target='_blank' href='https://github.com/pik-ecs/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/UNEP-EGR-2026-country-change.xlsx'>data</a>"))
 
-  link_png <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/", plot, ".png'>png</a>")
+  link_png <- paste0("<a target='_blank' href='https://github.com/pik-ecs/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/", plot, ".png'>png</a>")
 
-  link_pdf <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/", plot, ".pdf'>pdf</a>")
+  link_pdf <- paste0("<a target='_blank' href='https://github.com/pik-ecs/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/", plot, ".pdf'>pdf</a>")
 
-  link_svg <- paste0("<a target='_blank' href='https://github.com/lambwf/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/", plot, ".svg'>svg</a>")
+  link_svg <- paste0("<a target='_blank' href='https://github.com/pik-ecs/UNEP-Gap-Report-2026-Chapter-2/raw/main/results/standard/countries/", plot, ".svg'>svg</a>")
   
   
   cat("<div class='figure-container'>")
